@@ -1,0 +1,31 @@
+body {
+    background: greenyellow; 
+    background: -webkit-linear-gradient(to left, #2F80ED, #fff);  
+    background: linear-gradient(to left, #2F80ED, #fff); 
+}
+.contenido {
+    margin-top: 40px;
+}
+h1 {
+    color: #000;
+    text-align: center;
+    font-size: 34px;
+}
+
+form {
+    background-color: white;
+    padding: 50px;
+}
+
+.lista {
+    list-style: none;
+    width: 80%;
+    text-align: center;
+    margin: 0 auto;
+    padding: 20px;
+    border: 1px solid rgb(7, 45, 58); 
+    background: rgb(223, 246, 222); 
+}
+.lista li:last-child{
+    margin:0;
+}
