@@ -2,20 +2,47 @@
 const formulario=document.getElementById('agregar-producto');
 //classes
 
+/**
+ * Clase presupuesto
+ */
 class Presupuesto{
     constructor(presupuesto){
         this.presupuesto=Number(presupuesto);
         this.restante=Number(presupuesto);
     }
 
-    restarPresupuesto(cantidad){
-        this.restante-=Number(cantidad);
+     static restarPresupuesto(cantidad){
+        let presupuestoActual=this.obtenerPresupuestoLS();
+        if(presupuestoActual.restante>=cantidad)
+        {
+            presupuestoActual.restante-=Number(cantidad);
+            localStorage.setItem('presupuesto',JSON.stringify(presupuestoActual));
+            UIHtml.actualizarRestante(presupuestoActual.restante);
+            return true;
+        }
+        else 
+        {
+            return false;
+            UIHtml.insertarMensaje('El valor excede el presupuesto establecido','warning');
+        }
     }
-
+    insertarPresupuestoLS(){
+        localStorage.setItem('presupuesto',JSON.stringify(this));
+    }   
+     static obtenerPresupuestoLS(){
+        return JSON.parse(localStorage.getItem('presupuesto'));
+    }
+     static reiniciarPresupuesto(){
+         let presupuestoActual= this.obtenerPresupuestoLS();
+         presupuestoActual.restante=presupuestoActual.presupuesto;
+         localStorage.setItem('presupuesto',JSON.stringify(presupuestoActual));
+     }
 }
+//fin clase presupuesto
 
+// INICIO clase de interfaz
 class UIHtml{
-    insertarPresupuesto(presupuesto,restante){
+    static insertarPresupuesto(presupuesto,restante){
         const htmlPresupuesto=document.querySelector('#total');
         const htmlRestante=document.querySelector('#restante');
 
@@ -24,7 +51,7 @@ class UIHtml{
 
     }
 
-    insertarMensaje(mensaje,tipo){
+    static insertarMensaje(mensaje,tipo){
         const divMensaje= document.createElement('div');
         divMensaje.classList.add('alert','text-center');
 
@@ -48,7 +75,7 @@ class UIHtml{
         },3000);
     }
 
-    agregarProductosLista(producto){
+    static agregarProductosLista(producto){
 
         const gastoUL=document.querySelector('#productos ul');
         const li=document.createElement('li');
@@ -61,7 +88,7 @@ class UIHtml{
         gastoUL.appendChild(li);
     }
 
-    agregarProductosLocalStorage(productos){
+    static agregarProductosLocalStorage(productos){
 
 
         
@@ -72,14 +99,20 @@ class UIHtml{
     }
 
 
-    refrescar(){
+    static refrescar(){
        const lista= document.querySelector('#productos ul');
         while(lista.firstChild){
             lista.firstChild.remove();
         }
     }
-}
 
+    static actualizarRestante(valor){
+        document.getElementById('restante').textContent=valor;
+    }
+}
+// final interfaz clase
+
+//clase producto 
 class Producto{
     
     constructor(nombre,precio){
@@ -128,15 +161,16 @@ class Producto{
         return productosLS;
     }
 }
+// fin clase proucto
 
 //functions
+//evento de carga inicio
 const comprobarPresupuesto=(e)=>{
     if(localStorage.getItem('presupuesto')){
 
         const presupuesto= JSON.parse(localStorage.getItem('presupuesto'));
-        const interfaz= new UIHtml();
-        interfaz.insertarPresupuesto(presupuesto.presupuesto,presupuesto.restante);
-        interfaz.agregarProductosLocalStorage(new Producto().getProductsLocalStorage());
+        UIHtml.insertarPresupuesto(presupuesto.presupuesto,presupuesto.restante);
+        UIHtml.agregarProductosLocalStorage(new Producto().getProductsLocalStorage());
     }
     else{
         const valorPresupuesto = prompt('Cuanto planea gastar este mes?');
@@ -148,10 +182,9 @@ const comprobarPresupuesto=(e)=>{
         }
 
         const presupuesto= new Presupuesto(valorPresupuesto);
-        localStorage.setItem('presupuesto',JSON.stringify(presupuesto));
-        const interfaz= new UIHtml();
-        interfaz.insertarPresupuesto(presupuesto.presupuesto,presupuesto.restante);
-        interfaz.agregarProductosLocalStorage(new Producto().getProductsLocalStorage());
+        presupuesto.insertarPresupuestoLS();
+        UIHtml.insertarPresupuesto(presupuesto.presupuesto,presupuesto.restante);
+        UIHtml.agregarProductosLocalStorage(new Producto().getProductsLocalStorage());
     }
 
 
@@ -161,19 +194,19 @@ const guardarGasto=(e)=>{
     e.preventDefault();
     const nombreProducto= e.target.querySelector('#nombre').value;
     const precio= e.target.querySelector('#precio').value;
-    
     const producto= new Producto(nombreProducto,precio);
-    const htmlMensaje= new UIHtml(nombreProducto,precio);
-
-    if(producto.validar() ){
-        producto.saveProductLS();
-        htmlMensaje.insertarMensaje('Almacenado con exito', 'success');
-        htmlMensaje.agregarProductosLista(producto);
-
+ 
+    if(producto.validar() && Presupuesto.restarPresupuesto(precio) )
+    { // pasa validacion de parametros productos, define si el valor coincide con el del localstorage
+   
+            producto.saveProductLS();
+            UIHtml.insertarMensaje('Almacenado con exito', 'success');
+            UIHtml.agregarProductosLista(producto);   
+    
     }
     else
     {
-        htmlMensaje.insertarMensaje('Ocurrio un error', 'error');
+        UIHtml.insertarMensaje('Ocurrio un error', 'error');
         
     }
         
@@ -182,19 +215,17 @@ const guardarGasto=(e)=>{
 
 const eliminarLocalStorage=()=>{
     localStorage.clear();
-    html= new UIHtml;
-    html.refrescar();
-
-    html.insertarMensaje('Se elimino todo del localstorage, disponible en breve...','success');
+    UIHtml.refrescar();
+    UIHtml.insertarMensaje('Se elimino todo del localstorage, disponible en breve...','success');
     setTimeout(()=>window.location.reload(),4000);
 }
 
 const eliminarListaLocalStorage=()=>{
     localStorage.removeItem('productos');
-    html= new UIHtml;
-    html.refrescar();
-    html.insertarMensaje('Se eliminaron los productos','success');
-    
+    Presupuesto.reiniciarPresupuesto();
+    UIHtml.refrescar();
+    UIHtml.actualizarRestante(Presupuesto.obtenerPresupuestoLS().restante);
+    UIHtml.insertarMensaje('Se eliminaron los productos','success');
            
 }
 //listeners
